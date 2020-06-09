@@ -1,0 +1,42 @@
+#!/bin/bash
+#上传数据包处理办法
+#time:2020/06/08
+#version 1.0
+#wsm
+
+data_path=/mnt/clesun_project/qfls/temlog/
+now=`date +"%Y-%m-%d %H:%M:%S"`
+cd $data_path
+#day=`date +%d`
+#记录日志
+echo "开始处理数据包，日期：${now}" >> /tools/scripts/cron_data.log
+
+last_month=`date -d "$(date +%m)01 last month" +%m`
+
+last=`date -d "$(date +%Y%m)01 last month" +%Y%m`
+
+new_dir=temlog_$last
+
+#每月1日创建一个以上月为名称的目录
+#if [ $day -eq 01 ]; then
+mkdir $new_dir 
+#fi
+
+#找到上月月份结尾的所有文件并移动到新建目录中
+mvfile=`find $data_path -type f -name "*$last_month-*.txt"`
+mv  $mvfile $new_dir
+
+#打包31天前的目录并删除原文件
+dir=`find $data_path -type d -mtime +31`
+tar zcP -f $dir.tar.gz $dir --remove-files
+
+if [ -d "$dir" ];then
+  rm -rf $dir
+else
+  echo "已自动删除原打包文件" >> /tools/scripts/cron_data.log
+fi
+#找到超过180天的tar包并删除
+find $data_path -name "*.tar.gz" -mtime +180 -exec rm -rf {} \;
+#记录日志
+now1=`date +"%Y-%m-%d %H:%M:%S"`
+echo "结束处理数据包，日期：${now1}" >> /tools/scripts/cron_data.log

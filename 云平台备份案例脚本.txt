@@ -1,0 +1,33 @@
+
+服务器编写备份脚本：
+cat /backup/backup.sh
+#!/bin/bash
+#获取当前时间
+now=`date +"%Y-%m-%d %H:%M:%S"`
+#记录日志
+echo "开始备份devops平台数据，日期：${now}" >> /backup/backup-devops.log
+now1=`date +"%Y-%m-%d"`
+#打包devops项目目录
+tar zcP -f /backup/devops-${now1}.tar.gz /mnt/*
+#打包zabbix相关配置文件
+tar zcP -f /backup/zbx_server_conf-${now1}.tar.gz /etc/zabbix/zabbix_server.conf 
+tar zcP -f /backup/zbx_agent_conf-${now1}.tar.gz /etc/zabbix/zabbix_agentd.conf
+
+#备份mysql数据库
+mysqldump -uroot -p奇奇怪怪的密码 -A |gzip > /backup/all-${now1}.sql.gz
+
+#定时清理30天前备份
+find /backup/ -type f -mtime +30 -exec rm -f {} \;
+
+#获取完成时间
+now=`date +"%Y-%m-%d %H:%M:%S"`
+#完成日志
+echo "完成备份devops平台数据，日期：${now}" >> /backup/backup-devops.log
+ 
+#给脚本赋权：
+chmod +x /backup/backup.sh
+ 
+#编写定时任务
+每月22号备份
+crontab -e
+0 0 22 * *  /usr/bin/sh /tools/scripts/backup.sh  > /dev/null 2>&1 &
